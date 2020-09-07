@@ -52,6 +52,7 @@ let __desu__first_of_name = async function (props, fcc) {
 let __desu__get_tlds = async function (props) {
     console.log(props)
     return new Promise(function(resolve, reject) {
+        if(!props[0]) resolve([])
         var tlds = {}
         var tmp = []
         for (var i = 0; i < props.length; i++) {
