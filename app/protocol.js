@@ -89,10 +89,12 @@ let __desu__get_records = async function (txid, owner) {
                 __desu__get_output(res.u[0].out).then((records) => {
                     resolve(records)
                 })
-            } else {
+            } else (res.c[0]) {
                 __desu__get_output(res.c[0].out).then((records) => {
                     resolve(records)
                 })
+            } else {
+                reject('NO_RECORDS')
             }
         })
     })
