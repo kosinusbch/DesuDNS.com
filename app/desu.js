@@ -8,7 +8,7 @@ const errors = {
         description: '<p>Please open Badger Wallet once and refresh the page.</p>'
     }
 }
-const prefix = '0x0444553';
+const prefix = '0x00444553';
 const prefix_s = prefix.split('x')[1];
 const types = {
     'REGISTER': {

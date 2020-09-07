@@ -1,4 +1,4 @@
-const __desu__prefix = '0x00474160';
+const __desu__prefix = '0x00444553';
 const __desu__prefix_s = __desu__prefix.split('x')[1];
 const __desu__types = {
     'REGISTER': {
@@ -82,24 +82,17 @@ let __desu__get_output = async function (outs) {
 let __desu__get_records = async function (txid, owner) {
     return new Promise(function(resolve, reject) {
         __desu__bitdb({"v": 3, "q": {
-                "find": {"out.h1": __desu__prefix_s, "out.h2":{ "$in": [__desu__types['SET_IPFS_HTML'].action_s, __desu__types['SET_IPFS_MD'].action_s]}, "out.s3": txid}, "sort": {"blk.i": 1}, "limit": 1000
+                "find": {"in.e.a": owner, "out.h1": __desu__prefix_s, "out.h2":{ "$in": [__desu__types['SET_IPFS_HTML'].action_s, __desu__types['SET_IPFS_MD'].action_s]}, "out.s3": txid}, "sort": {"blk.i": 1}, "limit": 100
             }
         }).then(async function(res) {
-            for (var i = 0; i < res.u.length; i++) {
-                if(res.u[i].in[0].e.a == owner) {
-                    __desu__get_output(res.u[i].out).then((records) => {
-                        console.log('CHOSEN', records)
-                        resolve(records)
-                    })
-                }
-            }
-            for (var i = 0; i < res.c.length; i++) {
-                if(res.c[i].in[0].e.a == owner) {
-                    __desu__get_output(res.c[i].out).then((records) => {
-                        console.log('CHOSEN', records)
-                        resolve(records)
-                    })
-                }
+            if(res.u[0]) {
+                __desu__get_output(res.u[0].out).then((records) => {
+                    resolve(records)
+                })
+            } else {
+                __desu__get_output(res.c[0].out).then((records) => {
+                    resolve(records)
+                })
             }
         })
     })
