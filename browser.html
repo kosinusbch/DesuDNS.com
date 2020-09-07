@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html class="__desu" style="width: 100%!important;">
+    <head>
+        <title>DesuBrowser</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script src="https://cdn.jsdelivr.net/npm/markdown-it@11.0.0/dist/markdown-it.min.js"></script>
+    </head>
+    <body class="__desu" style="width: 100%!important;margin: unset;padding: unset;">
+        <div class="__desu__header" style="width: 100%;background: #e8ebee;text-align: center;display: flex;flex-flow: row wrap;justify-content: space-around;align-content: stretch;padding: 5px 0px 5px 0px;font-family: arial, sans-serif;">
+            <span style="max-width: 120px;flex: 1;padding: 7px 0px 7px 0px;font-size: 1.1em;">DesuBrowser</span>
+            <input style="max-width: 700px;flex: 1;padding: 0px 15px;background: #fff;border: 2px solid #fff;border-radius: 50px;outline: 0;font-size: 0.98em;" id="__desu__input" type="text" placeholder="" value="des://welcome.bch" spellcheck="false">
+            <button>Fetch</button>
+        </div>
+        <div id="__desu__content" style="width: 720px;margin: auto;"></div>
+        <style>
+            .__desu__header input:active, .__desu__header input:focus {
+                border: 2px solid #3fc78b;
+            }
+            img {
+                max-width: 100%;
+            }
+        </style>
+        <script type="text/javascript" src="app/protocol.js"></script>
+        <script type="text/javascript" src="app/sha256.min.js"></script>
+        <script type="text/javascript">
+        const ipfs_url = 'https://cloudflare-ipfs.com/ipfs/';
+
+        let __desu__get_ipfs = async function (hash) {
+            return new Promise(async function(resolve, reject) {
+                var url = ipfs_url + hash;
+                var res = await fetch(url).then(response => response.text()).then(data => resolve(data)).catch((err) => reject(err));
+            })
+        }
+
+        let __desu__domain_found = async function (txid, owner) {
+            __desu__get_records(txid, owner).then((records) => {
+                if(records) {
+                    document.getElementById('__desu__content').innerHTML = '<div style="text-align: center;"><h2 style="margin-top: 5vh;">Loading...</h2><h3>Connecting to IPFS..</h3></div>'
+                    __desu__get_ipfs(records.s4).then((res) => {
+                        if(records.h2 == __desu__types['SET_IPFS_HTML'].action_s) {
+                            var result = res.replace('<body>', '<div class="__desu__body">');
+                            var result = res.replace('</body>', '</div>');
+                            var result = res.replace('body {', '.__desu__body {');
+                            var result = res.replace('body{', '.__desu__body {');
+                            var result = res.replace(/ipfs:\/\//g, ipfs_url);
+                            document.getElementById('__desu__content').innerHTML = result;
+                            document.getElementById('__desu__content').style = ''
+                        } else {
+                            console.log(res)
+                            var md = window.markdownit();
+                            var result = md.render(res).replace(/ipfs:\/\//g, ipfs_url);
+                            document.getElementById('__desu__content').innerHTML = result;
+                            document.getElementById('__desu__content').style = 'width: 720px;margin: auto;'
+                        }
+                    })
+                }
+            }).catch((err) => {
+                console.error(err);
+                if(err == 'NO_RECORDS') {
+                    err = '<h2 style="">' + err + '</h2><h3>Couldn\'t find any IPFS records for this domain name.</h3>'
+                }
+                document.getElementById('__desu__content').innerHTML = '<h2 style="">' + err + '</h2>';
+            })
+        }
+
+        let __desu__lookup = async function (url) {
+            return new Promise(async function(resolve, reject) {
+                console.log('Fetching', url.split(".")[0], url.split(".")[1])
+                document.getElementById('__desu__content').innerHTML = '<div style="text-align: center;"><h2 style="margin-top: 5vh;">Loading...</h2><h3>Connecting to the blockchain..</h3></div>'
+                __desu__get_by_names([url.split(".")[0]]).then(async function (res) {
+                    if(res[0] && url.split(".")[1] == 'bch') {
+                        var properties = await __desu__get_tlds(res)
+                        console.log('IS .BCH')
+                        if(properties[0]) {
+                            resolve({owner: properties[0].owner, txid: properties[0].tx})
+                        }
+                    } if(res[0]) {
+                        var properties = await __desu__get_tlds(res)
+                        properties.forEach(prop => {
+                            if(prop.tld == url.split(".")[1]) {
+                                resolve({owner: prop.owner, txid: prop.tx})
+                            } else {
+                                console.log(prop.tld, url.split(".")[1])
+                            }
+                        })
+                    } else {
+                        document.getElementById('__desu__content').innerHTML = '<h2 style="">Couldn\'t find any domains by that name.</h2><h3>If you just registered this domain, please wait for your transaction to be confirmed on the blockchain.</h3>';
+                    }
+                })
+            })
+        }
+
+        document.getElementById('__desu__input').onkeypress = function(e){
+            if (!e) e = window.event;var keyCode = e.keyCode || e.which;
+            if (keyCode == '13'){
+                var url = (document.getElementById('__desu__input').value).split("//")[1];
+                __desu__lookup(url).then((data) => {
+                    console.log('resolved', data)
+                    __desu__domain_found(data.txid, data.owner)
+                })
+            }
+        }
+
+        __desu__lookup('welcome.bch').then((data) => {
+            __desu__domain_found(data.txid, data.owner)
+        })
+        </script>
+    </body>
+</html>

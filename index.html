@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>DesuDNS - Permissionless domains on the blockchain</title>
+        <link rel="stylesheet" type="text/css" href="/app/desu.css">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="https://fonts.googleapis.com/css2?family=Ubuntu&display=swap" rel="stylesheet">
+        <script type="text/javascript" src="/app/bitcoincom-link.min.js"></script>
+    </head>
+    <body>
+        <div id="loading"><h2 id="load_msg">Loading DesuDNS...</h2></div>
+        <div class="container-md" id="content" style="margin-top: 4vh;">
+            <h1 style="margin: 0px 0px 1vh 0px;">DesuDNS</h1>
+            <h3 style="margin: 0px 0px 1vh 0px;">DesuDNS allows anyone to create and manage completely uncensorable domain names on the <a href="https://bch.info" target="_blank">Bitcoin Cash</a> blockchain and IPFS.</h3>
+            <a href="browser.html" class="btn btn-red btn-scale-15">Browse</a>
+            <button type="button" class="btn btn-red btn-scale-15" onclick="setup()">Get Started</button>
+        </div>
+        <div id="errors"></div>
+        <script type="text/javascript" src="app/sha256.min.js"></script>
+        <script type="text/javascript" src="app/desu.js"></script>
+        <script type="text/javascript" src="app/protocol.js"></script>
+        <script type="text/javascript">
+        let time_ago = function (unix) {var d=new Date(); var current = Math.floor(d.getTime()/1000);var seconds = current-unix;var date = new Date(unix*1000);var months_arr = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];if (seconds > 24*3600) {var hours = date.getHours();var minutes = "0" + date.getMinutes();var ampm = hours >= 12 ? ' PM' : ' AM';var date = months_arr[date.getMonth()]+' '+date.getDate()+', ' + hours + ':' + minutes.substr(-2) +ampm;return date;}if (seconds > 7200) {return Math.floor(seconds/3600) + " hours ago";}if (seconds > 3600) {return "1 hour ago";}if (seconds > 120) {return Math.floor(seconds/60) + " minutes ago";}if (seconds >= 60) {return Math.floor(seconds/60) + " minute ago";}if (seconds < 60) {return seconds + " seconds ago";}}
+        let register = async function () {
+            var domain = document.getElementById('domain_name').value
+            send('REGISTER', [domain])
+        }
+        let update = async function () {
+            var txid = document.getElementById('domain_txid').value
+            var ipfs = document.getElementById('domain_ipfs').value
+            var format = document.getElementById('domain_format').value
+            if(format == 'markdown') {
+                send('SET_IPFS_MD', [txid, ipfs])
+            } else if(format == 'html') {
+                send('SET_IPFS_HTML', [txid, ipfs])
+            } else {
+                alert('Invalid format')
+            }
+        }
+        let startup = async function () {
+            try {
+            // Should we display landing page or dashboard
+            if(localStorage.getItem('account')) {
+                document.getElementById('content').innerHTML = '';
+                // Remove bch prefix
+                var addr = (await address()).address.split(':')[1];
+                document.getElementById('load_msg').innerHTML = 'Fetching data from the blockchain...';
+                __desu__get_by_address(addr).then(async function(res) {
+                    var regs = res.props.sort(function(a, b){return b.blk.t-a.blk.t})
+                    var temp = []
+                    regs.forEach(el => {
+                        if(!temp[el.name]) {
+                            temp.push(el.name)
+                        }
+                    });
+                    var all_properties = await __desu__get_by_names(temp)
+                    var properties = await __desu__get_tlds(all_properties)
+                    console.log(properties)
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('content').innerHTML = '<h3 class="title">My Properties</h3><div class="table" style="max-height: 45vh;overflow: auto;" id="list"></div>';
+                    properties.forEach(prop => {
+                        if(prop.owner == addr) {
+                            var el = document.getElementById('list'), ch = document.createElement('div');
+                            ch.innerHTML = '<div class="trow"><div class="tcell">'+ prop.name +'.'+ prop.tld +'</div><div class="tcell">'+ time_ago(prop.blk.t) +'</div></div>';
+                            el.insertBefore(ch, el.firstChild);
+                        }
+                    });
+                    document.getElementById('content').innerHTML += '<div class=""><h3 class="title">Create New Domain</h3><div class="form-group"><input class="form-input" id="domain_name" type="text" placeholder="Domain"><small id="emailHelp" class="form-text text-muted">Enter the name you\'d like to register.</small></div><div class="form-group"><button type="button" class="btn btn-green btn-block btn-scale-10" onclick="register()">Create</button></div></div>';
+                    document.getElementById('content').innerHTML += '<div class=""><h3 class="title">Update IPFS Record</h3><div class="form-group"><label for="domain_format">Select Format</label><select class="form-input" name="domain_format" id="domain_format"><option value="markdown">Markdown</option><option value="html">HTML</option></select></div><div class="form-group"><label for="domain_txid">Select Domain</label><select class="form-input" name="domain_txid" id="domain_txid"></select></div><div class="form-group"><label for="domain_ipfs">IPFS Hash</label><input class="form-input" id="domain_ipfs" type="text" placeholder="IPFS hash"></div><div class="form-group"><button type="button" class="btn btn-green btn-block btn-scale-10" onclick="update()">Update</button></div></div>';
+                    properties.forEach(prop => {
+                        document.getElementById('domain_txid').innerHTML += '<option value="'+ prop.tx +'">'+ prop.name +'.'+ prop.tld +'</option>'
+                    });
+                })
+            } else {
+                document.getElementById('loading').style.display = 'none';
+            }
+            } catch (err) {
+                var erro = document.getElementById('errors');
+                console.log('broken')
+                erro.innerHTML = errors['NO_PROVIDER'].title + '' + errors['NO_PROVIDER'].description;
+                erro.style.display = 'block'
+            }
+        }
+
+        // badger wallet / bitcoin link takes a while to get ready so delay startup by 100ms
+        window.onload = function () {
+            setTimeout(function(){startup()
+        }, 100)};
+        </script>
+    </body>
+</html>
