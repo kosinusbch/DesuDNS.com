@@ -89,7 +89,7 @@ let __desu__get_records = async function (txid, owner) {
                 __desu__get_output(res.u[0].out).then((records) => {
                     resolve(records)
                 })
-            } else (res.c[0]) {
+            } else if (res.c[0]) {
                 __desu__get_output(res.c[0].out).then((records) => {
                     resolve(records)
                 })
